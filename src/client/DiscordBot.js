@@ -13,6 +13,7 @@ const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
 const { QuickYAML } = require("quick-yaml.db");
 const TicketEmbed = require("../components/Embeds/ticket-embed");
+const RecrtierEmebed = require("../components/Embeds/recrutier-emebed");
 
 class DiscordBot extends Client {
   collection = {
@@ -84,6 +85,9 @@ class DiscordBot extends Client {
   }
 
   sendEmbeds = async () => {
+    const recruiterChannel = await this.channels.fetch(
+      config.recruiter.recruiterChannel
+    );
     const channelTicket = await this.channels.fetch(
       config.channels.ticketChannel
     );
@@ -101,7 +105,23 @@ class DiscordBot extends Client {
         }
       });
     }
+
+    if (recruiterChannel && recruiterChannel.isTextBased()) {
+      const fetchedMessages = await recruiterChannel.messages.fetch({
+        limit: 100,
+      });
+
+      fetchedMessages.forEach(async (message) => {
+        try {
+          await message.delete();
+        } catch (error) {
+          console.error(`Failed to delete message: ${error}`);
+        }
+      });
+    }
+
     TicketEmbed.TicketEmbed(channelTicket, this);
+    RecrtierEmebed.RecrtierEmebed(recruiterChannel, this);
   };
 
   startStatusRotation = () => {

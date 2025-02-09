@@ -49,12 +49,7 @@ module.exports = new Event({
       }
     };
 
-    if (
-      newState != null &&
-      newState != undefined &&
-      newState.channel &&
-      newState.channel.id === helpCenterChannelId
-    ) {
+    if (newState.channel && newState.channel.id === helpCenterChannelId) {
       const member = await newState.guild.members.fetch(newState.id);
       const userRoles = member.roles.cache.map((role) => role.id);
       const premiumRoleIndex = premiumRoles.findIndex((role) =>
@@ -64,6 +59,7 @@ module.exports = new Event({
       if (premiumRoleIndex !== -1) {
         let insertIndex = queue.findIndex((user) => {
           const userMember = newState.guild.members.cache.get(user.id);
+          if (!userMember) return false;
           const userPremiumRoleIndex = premiumRoles.findIndex((role) =>
             userMember.roles.cache.has(role)
           );
@@ -107,15 +103,35 @@ module.exports = new Event({
             const user = await client.users.fetch(userInQueue.id);
             const position =
               queue.findIndex((user) => user.id === newState.id) + 1;
+
+            let averageWaitTimeMessage = "";
+            if (position > 1) {
+              const totalWaitTime = queue.reduce((acc, user, index) => {
+                if (index < position - 1) {
+                  return acc + (new Date() - user.joinedAt);
+                }
+                return acc;
+              }, 0);
+              const averageWaitTime = totalWaitTime / (position - 1);
+              const averageWaitTimeMinutes = Math.round(
+                averageWaitTime / 60000
+              );
+              averageWaitTimeMessage = ` Średni czas oczekiwania to: ${averageWaitTimeMinutes} minut.\n`;
+            }
+
             user.send(
-              `Jesteś w kolejce do pomocy. Twoja pozycja w kolejce to: ${position}. Proszę czekać na swoją kolej.`
+              `Jesteś w kolejce do pomocy. Twoja pozycja w kolejce to: ${position}.${averageWaitTimeMessage} Proszę czekać na swoją kolej.`
             );
           }
         }
       }, 30000);
     }
 
-    if (oldState.channel && oldState.channel.id === helpCenterChannelId) {
+    if (
+      oldState.channel &&
+      oldState.channel.id === helpCenterChannelId &&
+      (!newState.channel || newState.channel.id !== helpCenterChannelId)
+    ) {
       queue = queue.filter((user) => user.id !== oldState.id);
 
       for (const userInQueue of queue) {
