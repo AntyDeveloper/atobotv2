@@ -19,6 +19,7 @@
     "moment-timezone": "^0.5.47",
     "mongoose": "^8.9.0",
     "node-cron": "^3.0.3",
-    "quick-yaml.db": "^1.2.2"
+    "quick-yaml.db": "^1.2.2",
+    "rcon-client": "^4.2.5"
   }
 }

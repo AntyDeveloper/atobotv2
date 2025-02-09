@@ -7,6 +7,7 @@ const {
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const recrutierSchema = require("../../models/recrutierSchema");
+const config = require("../../config");
 
 module.exports = new Component({
   customId: "recruiter-modal",
@@ -23,8 +24,26 @@ module.exports = new Component({
     const embed = new EmbedBuilder();
     embed.setTitle("Formularz rekrutacyjny");
     embed.setColor("#00ff16");
+
+    const getAllDetails = await recrutierSchema.find({
+      userId: interaction.user.id,
+    });
+
+    const allDeclined = getAllDetails.filter(
+      (x) => x.status[0]?.declined || false
+    );
+    const allAccepted = getAllDetails.filter(
+      (x) => x.status[0]?.accept || false
+    );
+
     embed.setDescription(
-      "Poniżej znajdziesz odpowiedzi na formularz rekrutacyjny."
+      `Informacje o zgloszeniach użytkownika` +
+        `\n\n` +
+        `Zgłoszenia odrzucone: ${allDeclined.length || 0}` +
+        `\n` +
+        `Zgłoszenia zaakceptowane: ${allAccepted.length || 0}` +
+        `\n\n` +
+        "Poniżej znajdziesz odpowiedzi na formularz rekrutacyjny. \n Jeśli chcesz zaakceptować lub odrzucić zgłoszenie, skorzystaj z przycisków poniżej."
     );
 
     client.config.question.forEach((question) => {
@@ -53,6 +72,10 @@ module.exports = new Component({
         status: [{ open: true, declined: false, accept: false }],
       });
     });
+
+    const allRecruitersData = await recrutierSchema.countDocuments({});
+
+    await channel.setTopic(`Ilość zgłoszeń: ${allRecruitersData}`);
 
     await interaction.reply({
       content: "Pomyślnie wysłano formularz rekrutacyjny.",
