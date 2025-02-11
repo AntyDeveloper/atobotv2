@@ -11,12 +11,14 @@ const ticketSchemas = require("../../schemas/ticketSchemas");
 const config = require("../../config");
 const discordTranscripts = require("@johnbotapp/discord-html-transcripts");
 module.exports = new Component({
-  customId: "ticket-close-button",
+  customId: "recruiter-declaine-terms-button",
   type: "button",
   /**
    *
    * @param {DiscordBot} client
    * @param {ButtonInteraction} interaction
    */
-  run: async (client, interaction) => {},
+  run: async (client, interaction) => {
+    await interaction.message.delete();
+  },
 }).toJSON();

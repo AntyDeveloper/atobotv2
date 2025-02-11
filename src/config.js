@@ -67,25 +67,26 @@ const config = {
   recruiter: {
     recruitedRole: "1337936810290188319",
     recruiterChannel: "1337936553363640340",
+    recruiterFormsChannelId: "1338661217933459497",
   },
   question: [
     {
       id: "name",
       label: "Imię",
       placeholder: "Jan",
-      style: "SHORT",
+      style: "SHORT", // Upewnij się, że wartości są poprawne
     },
     {
       id: "age",
       label: "Wiek",
       placeholder: "18",
-      style: "SHORT",
+      style: "SHORT", // Upewnij się, że wartości są poprawne
     },
     {
       id: "description",
       label: "Opisz siebie",
       placeholder: "Jestem super!",
-      style: "PARAGRAPH",
+      style: "PARAGRAPH", // Upewnij się, że wartości są poprawne
     },
   ],
   rewardSystem: {
@@ -108,12 +109,12 @@ const config = {
             name: "Epic klucz",
             command: "epicklucz",
             chance: 0.3,
-          }
+          },
           {
             name: "Legendar klucz",
             command: "legendar klucz",
             chance: 0.2,
-          }
+          },
         ],
       },
       {
@@ -124,7 +125,7 @@ const config = {
           rconIp: "",
           rconPort: "",
         },
-        drawAnimation: ''
+        drawAnimation: "",
         rewards: [
           {
             name: "100-150 coins",
@@ -142,7 +143,7 @@ const config = {
             chance: 0.2,
           },
         ],
-      }
+      },
     ],
   },
 };

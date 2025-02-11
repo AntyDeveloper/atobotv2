@@ -6,7 +6,7 @@ const {
 } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const recrutierSchema = require("../../models/recrutierSchema");
+const recrutierSchema = require("../../schemas/recrutierSchema");
 const config = require("../../config");
 
 module.exports = new Component({
@@ -19,7 +19,9 @@ module.exports = new Component({
    */
   run: async (client, interaction) => {
     const values = interaction.fields;
-    const channel = interaction.channel;
+    const channel = client.channels.cache.get(
+      config.recruiter.recruiterFormsChannelId
+    );
 
     const embed = new EmbedBuilder();
     embed.setTitle("Formularz rekrutacyjny");
@@ -43,10 +45,9 @@ module.exports = new Component({
         `\n` +
         `Zgłoszenia zaakceptowane: ${allAccepted.length || 0}` +
         `\n\n` +
-        "Poniżej znajdziesz odpowiedzi na formularz rekrutacyjny. \n Jeśli chcesz zaakceptować lub odrzucić zgłoszenie, skorzystaj z przycisków poniżej."
+        "Poniżej znajdziesz odpowiedzi na formularz rekrutacyjny. \n Jeśli chcesz zaakceptować lub odrzucić zgłoszenie, skorzystaj z przycisków poniżej.\n\n"
     );
-
-    client.config.question.forEach((question) => {
+    config.question.forEach((question) => {
       const answer = values.getTextInputValue(question.id);
       embed.addFields({
         name: `**${question.label}**`,
@@ -56,21 +57,21 @@ module.exports = new Component({
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("recrutier-decline-button")
-        .setLabel("Odrzuć zgłoszenie")
-        .setStyle("Danger"),
-      new ButtonBuilder()
         .setCustomId("recrutier-accept-button")
         .setLabel("Akceptuj zgłoszenie")
-        .setStyle("Success")
+        .setStyle("Success"),
+      new ButtonBuilder()
+        .setCustomId("recruiter-decline-button")
+        .setLabel("Odrzuć zgłoszenie")
+        .setStyle("Danger")
     );
 
-    await channel.send({ embeds: [embed], components: [row] }).then((msg) => {
-      recrutierSchema.create({
-        messageId: msg.id,
-        userId: interaction.user.id,
-        status: [{ open: true, declined: false, accept: false }],
-      });
+    const msg = await channel.send({ embeds: [embed], components: [row] });
+
+    await recrutierSchema.create({
+      messageId: msg.id,
+      userId: interaction.user.id,
+      status: [{ open: true, declined: false, accept: false }],
     });
 
     const allRecruitersData = await recrutierSchema.countDocuments({});

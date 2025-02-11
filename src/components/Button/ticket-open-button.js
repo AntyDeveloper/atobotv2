@@ -9,7 +9,7 @@ const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const ticketSchemas = require("../../schemas/ticketSchemas");
 module.exports = new Component({
-  customId: "ticketopenembed",
+  customId: "ticket-open-button",
   type: "button",
   /**
    *

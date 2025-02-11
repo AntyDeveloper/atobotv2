@@ -13,7 +13,7 @@ function TicketEmbed(channel, client) {
   embedtoSend.setColor("#00ff16");
 
   const button = new ButtonBuilder()
-    .setCustomId("ticketopenembed")
+    .setCustomId("ticket-accept-terms-button")
     .setLabel("OTWÓRZ TICKET")
     .setEmoji("🎫")
     .setStyle("Secondary");

@@ -1,10 +1,10 @@
 const { ButtonInteraction, EmbedBuilder } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const recrutierSchema = require("../../models/recrutierSchema");
+const recruiterSchema = require("../../schemas/recrutierSchema");
 
 module.exports = new Component({
-  customId: "recrutier-accept-button",
+  customId: "recruiter-accept-button",
   type: "button",
   /**
    *
@@ -13,30 +13,34 @@ module.exports = new Component({
    */
   run: async (client, interaction) => {
     const messageID = interaction.message.id;
-    const recrutier = await recrutierSchema.findOne({ messageId: messageID });
+    const recruiter = await recruiterSchema.findOne({ messageId: messageID });
 
-    if (!recrutier) {
+    if (!recruiter) {
       return interaction.reply({
         content: "Nie znaleziono zgłoszenia!",
         ephemeral: true,
       });
     }
 
-    const user = await client.users.fetch(recrutier.userId);
+    const user = await client.users.fetch(recruiter.userId);
 
     const embed = new EmbedBuilder();
     embed.setTitle("Zgłoszenie zaakceptowane");
     embed.setDescription(
       "> Gratulacje! Twoje zgłoszenie zostało zaakceptowane!\n > Otwórz ticket aby skontaktować się z rekruterem, który poinformuje Cię o dalszych krokach."
     );
-    embed.setColor("GREEN");
+    embed.setColor("#00FF00");
 
     await user.send({ embeds: [embed] });
 
-    await recrutierSchema.findOneAndUpdate(
-      { userId: recrutier.userId },
+    await recruiterSchema.findOneAndUpdate(
+      { userId: recruiter.userId },
       { $set: { "status.0.open": false, "status.0.accept": true } }
     );
+
+    await interaction.message.edit({
+      components: [], // Usuwa wszystkie komponenty (przyciski) z wiadomości
+    });
 
     return interaction.reply({
       content: "Zgłoszenie zostało zaakceptowane.",

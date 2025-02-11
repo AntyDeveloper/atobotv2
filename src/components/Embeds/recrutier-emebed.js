@@ -1,5 +1,6 @@
 const { EmbedBuilder, ButtonBuilder, ActionRowBuilder } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
+const recrutierSchema = require("../../schemas/recrutierSchema");
 
 function RecrtierEmebed(channel, client) {
   const embedtoSend = new EmbedBuilder();
@@ -13,7 +14,7 @@ function RecrtierEmebed(channel, client) {
   embedtoSend.setColor("#00ff16");
 
   const button = new ButtonBuilder()
-    .setCustomId("recrutier-open-modal")
+    .setCustomId("recruiter-accept-terms-button")
     .setLabel("OTWÓRZ ZGŁOSZENIE")
     .setEmoji("📋")
     .setStyle("Secondary");
