@@ -18,6 +18,10 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    closeBypass: {
+      type: Boolean,
+      default: false,
+    },
     closed: {
       type: Boolean,
       default: false,
@@ -25,6 +29,14 @@ const ticketSchema = new mongoose.Schema(
     usersAddedToTicket: {
       type: Array,
       default: [],
+    },
+    lastActivity: {
+      type: Date,
+      default: Date.now,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   { timestamps: true }
