@@ -1,15 +1,7 @@
-const {
-  ButtonInteraction,
-  EmbedBuilder,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-} = require("discord.js");
+const { ButtonInteraction } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const ticketSchemas = require("../../schemas/ticketSchemas");
-const config = require("../../config");
-const discordTranscripts = require("@johnbotapp/discord-html-transcripts");
+
 module.exports = new Component({
   customId: "recruiter-declaine-terms-button",
   type: "button",
@@ -19,6 +11,10 @@ module.exports = new Component({
    * @param {ButtonInteraction} interaction
    */
   run: async (client, interaction) => {
-    await interaction.message.delete();
+    await interaction.reply({
+      content:
+        "Nie zaakceptowałeś warunków, więc nie możesz utworzyć zgłoszenia.",
+      ephemeral: true,
+    });
   },
 }).toJSON();

@@ -17,11 +17,5 @@ module.exports = new ApplicationCommand({
    * @param {DiscordBot} client
    * @param {ChatInputCommandInteraction} interaction
    */
-  run: async (client, interaction) => {
-    await interaction.reply({
-      content: `${client.collection.application_commands
-        .map((cmd) => "`/" + cmd.command.name + "`")
-        .join(", ")}`,
-    });
-  },
+  run: async (client, interaction) => {},
 }).toJSON();

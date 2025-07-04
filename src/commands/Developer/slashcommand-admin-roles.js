@@ -11,6 +11,7 @@ module.exports = new ApplicationCommand({
     name: "admin-roles",
     description: "Add or remove admin roles.",
     type: 1,
+    default_member_permission: "0x0000000000000008",
     options: [
       {
         name: "add",

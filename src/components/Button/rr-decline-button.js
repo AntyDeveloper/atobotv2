@@ -1,7 +1,7 @@
 const { ButtonInteraction, EmbedBuilder } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const recrutierSchema = require("../../schemas/recrutierSchema");
+const recrutierSchema = require("../../schemas/recruitmentApplications");
 
 module.exports = new Component({
   customId: "recruiter-decline-button",

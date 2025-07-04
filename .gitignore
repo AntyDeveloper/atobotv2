@@ -4,3 +4,4 @@ package-lock.json
 # DO NOT REMOVE THESE FOR SECURITY
 
 terminal.log
+.env

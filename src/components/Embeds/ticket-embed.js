@@ -11,6 +11,9 @@ function TicketEmbed(channel, client) {
     iconURL: client.user.displayAvatarURL(),
   });
   embedtoSend.setColor("#00ff16");
+  embedtoSend.setImage(
+    "https://cdn.discordapp.com/attachments/1106613112783773696/1341100072129134625/Zamowienie2.png?ex=67b4c445&is=67b372c5&hm=bea41be9d832f641cc0b5f4fab24a096d531b57b40578a8eb737889feb7d4c0c&"
+  );
 
   const button = new ButtonBuilder()
     .setCustomId("ticket-accept-terms-button")

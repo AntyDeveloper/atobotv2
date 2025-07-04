@@ -7,7 +7,7 @@ const {
 } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const ticketSchemas = require("../../schemas/ticketSchemas");
+const ticketSchemas = require("../../schemas/guildTicket");
 module.exports = new Component({
   customId: "ticket-open-button",
   type: "button",
@@ -22,10 +22,10 @@ module.exports = new Component({
       closed: false,
     });
 
-    if (openTicketsCount >= 2) {
+    if (openTicketsCount >= 1) {
       await interaction.reply({
         content:
-          "Masz już otwarte dwa tickety. Zamknij jeden z nich, aby otworzyć nowy.",
+          "Masz już otwarty ticket. Zamknij jeden z nich, aby otworzyć nowy.",
         ephemeral: true,
       });
       return;
@@ -34,38 +34,43 @@ module.exports = new Component({
     const embed = new EmbedBuilder()
       .setTitle("Wybierz kategorię")
       .setDescription("Wybierz kategorię, aby otworzyć ticket.")
-      .setColor("#5865F2")
-      .setTimestamp();
+      .setColor("#5865F2");
 
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId("ticketcategory")
       .setPlaceholder("Wybierz kategorię")
       .addOptions(
         new StringSelectMenuOptionBuilder()
-          .setLabel("Błąd serwera")
-          .setEmoji("🛠️")
-          .setDescription("Jeśli napotkałeś problem z serwerem")
-          .setValue("help"),
+          .setLabel("Mam pytanie")
+          .setEmoji("❓")
+          .setDescription("Wybierz, jeśli masz pytanie")
+          .setValue("question"),
         new StringSelectMenuOptionBuilder()
           .setLabel("Zgłoszenie błędu")
           .setEmoji("🐛")
-          .setDescription("Jeśli znalazłeś błąd serwera")
+          .setDescription("Wybierz, jeśli znalazłeś błąd serwera")
           .setValue("bug"),
         new StringSelectMenuOptionBuilder()
           .setLabel("Problem z płatnością")
-          .setDescription("Jeśli masz problem z płatnością")
+          .setDescription("Wybierz, jeśli masz problem z płatnością")
           .setEmoji("💳")
           .setValue("payment"),
         new StringSelectMenuOptionBuilder()
-          .setLabel("Mam pytanie")
-          .setEmoji("❓")
-          .setDescription("Jeśli masz pytanie")
-          .setValue("question")
+          .setLabel("Partnerstwo")
+          .setEmoji("🤝")
+          .setDescription("Wybierz, jeśli chcesz nawiązać partnerstwo")
+          .setValue("partnership"),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Wspołpraca")
+          .setEmoji("🔰")
+          .setDescription("Wybierz, jeśli chcesz nawiązać współpracę")
+          .setValue("collaboration")
       );
 
     const row = new ActionRowBuilder().addComponents(selectMenu);
 
     await interaction.reply({
+      embeds: [embed],
       components: [row],
       ephemeral: true,
     });

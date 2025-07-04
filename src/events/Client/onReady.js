@@ -1,118 +1,182 @@
-const { success } = require("../../utils/Console");
 const Event = require("../../structure/Event");
-const mongoose = require("mongoose");
 const Config = require("../../config");
-const cron = require("node-cron");
-const moment = require("moment-timezone");
-const { PermissionsBitField } = require("discord.js");
+const pointsSchema = require("../../schemas/userPoints");
 require("dotenv").config();
+const AdminProfile = require("../../schemas/adminProfileSchema");
+
+const cron = require("node-cron");
+const {
+  addBoostedPoints,
+  addPointsForRole,
+  checkUserStatus,
+} = require("../../lib/points/pointsUtils");
+const generateAndSendMinecraftPoll = require("../../lib/poll/genereatePoll");
+const {
+  updateHelpCenterChannel,
+  openHelpCenterChannel,
+  closeHelpCenterChannel,
+} = require("../../lib/helpcenter/helpCenterUtils");
+const boostPointSchema = require("../../schemas/guildPointMultipliers");
+const {
+  checkAndWarnAllPartnershipUsers,
+} = require("../../lib/partnerships/partnershipUtils");
+const createUser = require("../../lib/points/createUser");
 
 module.exports = new Event({
   event: "ready",
   once: true,
-  run: async (__client__, client) => {
-    success(
-      "Logged in as " +
-        client.user.tag +
-        ", took " +
-        (Date.now() - __client__.login_timestamp) / 1000 +
-        "s."
-    );
-    const mongoUri = process.env.MONGO_URI;
+  run: async (client) => {
+    console.log(`${client.user.tag} is now online!`);
+    const notifyRoles = Config.notifyRoles;
 
-    if (!mongoUri) {
-      console.error(
-        "Error: MONGO_URI is not defined in environment variables."
+    async function expireAdminWarnings() {
+      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      await AdminProfile.updateMany(
+        { "warnings.date": { $lte: monthAgo }, "warnings.expired": false },
+        { $set: { "warnings.$[elem].expired": true } },
+        {
+          arrayFilters: [
+            { "elem.date": { $lte: monthAgo }, "elem.expired": false },
+          ],
+        }
       );
-      return;
     }
+    await expireAdminWarnings();
 
-    try {
-      await mongoose.connect(mongoUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
+    boostPointSchema.find({ guildId: "1312084655473950821" }).then((boosts) => {
+      boostPointSchema
+        .findOne({ guildId: "1312084655473950821" })
+        .then((boosts) => {
+          if (!boosts) {
+            const newBoosts = new boostPointSchema({
+              guildId: "1312084655473950821",
+              multipliers: {
+                status: 10, // +10 punktów dziennie za status
+                poll: 5, // +5 punktów za udział w ankiecie
+                announcements: 2, // +2 punkty za reakcję pod ogłoszeniem
+                message: 3, // domyślnie środek zakresu 1–5, możesz losować przy przyznawaniu
+                voice: 1, // +1 punkt co 5 minut na VC
+                reactions: 2, // +1 punkt za reakcję na wiadomość
+              },
+            });
+            newBoosts.save();
+          }
+        });
+    });
+    const { autoCloseTicket } = require("../../lib/tickets/ticketActions");
+    setInterval(
+      autoCloseTicket,
+      checkAndWarnAllPartnershipUsers(
+        client.guilds.cache.get("1312084655473950821"),
+        Config.tickets.roles.partnershipMaker
+      ),
+      24 * 60 * 60 * 1000
+    ); // raz na dobę
+    cron.schedule("0 16 * * *", async () => {
+      const guild = client.guilds.cache.get("1312084655473950821");
+      if (!guild) return;
+      generateAndSendMinecraftPoll(client);
+    });
+
+    cron.schedule("0 * * * *", async () => {
+      console.log("Sprawdzanie requirementMet co 60 minut");
+      await pointsSchema.checkAndUpdateRequirements();
+    });
+
+    cron.schedule("0 0 * * *", async () => {
+      console.log("Dodawanie punktów za posiadanie roli raz na 24h");
+      const guild = client.guilds.cache.get("1312084655473950821");
+      if (!guild) return;
+      for (const roleData of notifyRoles) {
+        await addPointsForRole(guild, roleData.id, 1);
+      }
+    });
+
+    cron.schedule("* * * * *", async () => {
+      // Co minutę sprawdź status użytkowników z userStatus: true
+      const guild = client.guilds.cache.get("1312084655473950821");
+      if (!guild) return;
+
+      const users = await pointsSchema.find({
+        "dailyRequiments.message.userStatus": true,
       });
-    } catch (error) {
-      console.error("Error connecting to MongoDB:", error);
-    }
 
-    // Schedule tasks to open and close the channel
-    const timezone = "Europe/Warsaw";
-    const openTime = Config.helpCenter.helpCenterTime.open;
-    const closeTime = Config.helpCenter.helpCenterTime.close;
-    const channelId = Config.helpCenter.helpCenterChannel;
-    const userRoleId = Config.server.userRole;
+      for (const user of users) {
+        try {
+          const member = await guild.members
+            .fetch(user.userId)
+            .catch(() => null);
+          if (!member) continue;
 
-    const [openHour, openMinute] = openTime.split(":");
-    const [closeHour, closeMinute] = closeTime.split(":");
+          const activities = member.presence?.activities || [];
+          const customStatus = activities.find(
+            (activity) => activity.type === 4
+          );
 
-    // Check current time and adjust channel state
-    const now = moment().tz(timezone);
-    const openMoment = moment.tz(
-      `${openHour}:${openMinute}`,
-      "HH:mm",
-      timezone
-    );
-    const closeMoment = moment.tz(
-      `${closeHour}:${closeMinute}`,
-      "HH:mm",
-      timezone
-    );
+          const isActive =
+            !!customStatus &&
+            customStatus.name === "Custom Status" &&
+            customStatus.state &&
+            [".gg/atomc", "dc.gg/atomc", "dc/atomc"].some((s) =>
+              customStatus.state.toLowerCase().includes(s)
+            );
 
-    const channel = await client.channels.fetch(channelId);
-    if (channel) {
-      const role = channel.guild.roles.cache.get(userRoleId);
-      if (role) {
-        if (now.isBetween(openMoment, closeMoment)) {
-          await channel.permissionOverwrites.edit(role, {
-            Connect: true,
-          });
-        } else {
-          await channel.permissionOverwrites.edit(role, {
-            Connect: false,
-          });
+          if (!isActive) {
+            await pointsSchema.findOneAndUpdate(
+              { userId: user.userId },
+              { $set: { "dailyRequiments.message.userStatus": false } }
+            );
+          }
+        } catch (err) {
+          continue;
         }
       }
-    }
+    });
+
+    cron.schedule("0 0 * * *", async () => {
+      console.log("Dodawanie punktów za status .gg/atomc raz na 24h");
+      const guild = client.guilds.cache.get("1312084655473950821");
+      if (!guild) return;
+
+      const boost = await boostPointSchema.findOne({ guildId: guild.id });
+      const statusPoints = boost?.multipliers?.status ?? 10;
+
+      // Pobierz użytkowników spełniających wymagania
+      const users = await pointsSchema.find({
+        "dailyRequiments.message.requirementMet": true,
+        "dailyRequiments.message.userStatus": true,
+      });
+
+      for (const user of users) {
+        await pointsSchema.findOneAndUpdate(
+          { userId: user.userId },
+          { $inc: { points: statusPoints } }
+        );
+      }
+    });
+
+    await updateHelpCenterChannel(client, Config);
 
     // Schedule opening the channel
     cron.schedule(
-      `${openMinute} ${openHour} * * *`,
+      `${Config.helpCenter.helpCenterTime.open.split(":")[1]} ${
+        Config.helpCenter.helpCenterTime.open.split(":")[0]
+      } * * *`,
       async () => {
-        const now = moment().tz(timezone).format("HH:mm");
-        const channel = await client.channels.fetch(channelId);
-        if (channel) {
-          const role = channel.guild.roles.cache.get(userRoleId);
-          if (role) {
-            channel.permissionOverwrites.edit(role, {
-              Connect: true,
-            });
-          }
-        }
+        await openHelpCenterChannel(client, Config);
       },
-      {
-        timezone: timezone,
-      }
+      { timezone: "Europe/Warsaw" }
     );
 
     // Schedule closing the channel
     cron.schedule(
-      `${closeMinute} ${closeHour} * * *`,
+      `${Config.helpCenter.helpCenterTime.close.split(":")[1]} ${
+        Config.helpCenter.helpCenterTime.close.split(":")[0]
+      } * * *`,
       async () => {
-        const now = moment().tz(timezone).format("HH:mm");
-        const channel = await client.channels.fetch(channelId);
-        if (channel) {
-          const role = channel.guild.roles.cache.get(userRoleId);
-          if (role) {
-            channel.permissionOverwrites.edit(role, {
-              Connect: false,
-            });
-          }
-        }
+        await closeHelpCenterChannel(client, Config);
       },
-      {
-        timezone: timezone,
-      }
+      { timezone: "Europe/Warsaw" }
     );
   },
 }).toJSON();

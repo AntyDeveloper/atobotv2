@@ -6,7 +6,7 @@ const {
 } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const recrutierSchema = require("../../schemas/recrutierSchema");
+const recrutierSchema = require("../../schemas/recruitmentApplications");
 const config = require("../../config");
 
 module.exports = new Component({
@@ -44,6 +44,9 @@ module.exports = new Component({
         `Zgłoszenia odrzucone: ${allDeclined.length || 0}` +
         `\n` +
         `Zgłoszenia zaakceptowane: ${allAccepted.length || 0}` +
+        `Nick: ${interaction.user.username}` +
+        `ID: ${interaction.user.id}` +
+        `\n` +
         `\n\n` +
         "Poniżej znajdziesz odpowiedzi na formularz rekrutacyjny. \n Jeśli chcesz zaakceptować lub odrzucić zgłoszenie, skorzystaj z przycisków poniżej.\n\n"
     );
@@ -57,7 +60,7 @@ module.exports = new Component({
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("recrutier-accept-button")
+        .setCustomId("recruiter-accept-button")
         .setLabel("Akceptuj zgłoszenie")
         .setStyle("Success"),
       new ButtonBuilder()

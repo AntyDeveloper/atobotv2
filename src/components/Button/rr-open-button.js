@@ -8,7 +8,7 @@ const {
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const config = require("../../config");
-const recruiterSchema = require("../../schemas/recrutierSchema");
+const recruiterSchema = require("../../schemas/recruitmentApplications");
 
 module.exports = new Component({
   customId: "recruiter-open-button",
@@ -63,9 +63,15 @@ module.exports = new Component({
           throw new Error(`Invalid style: ${question.style}`);
       }
 
+      // Skróć etykietę, jeśli przekracza 45 znaków
+      let label = question.label;
+      if (label.length > 45) {
+        label = label.substring(0, 42) + "...";
+      }
+
       const input = new TextInputBuilder()
         .setCustomId(question.id)
-        .setLabel(question.label)
+        .setLabel(label)
         .setPlaceholder(question.placeholder)
         .setStyle(style);
 

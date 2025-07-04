@@ -14,7 +14,8 @@ const EventsHandler = require("./handler/EventsHandler");
 const { QuickYAML } = require("quick-yaml.db");
 const TicketEmbed = require("../components/Embeds/ticket-embed");
 const RecrtierEmebed = require("../components/Embeds/recrutier-emebed");
-
+const mongoose = require("mongoose");
+const { sendFaqEmbed } = require("../components/Embeds/faq-embed");
 class DiscordBot extends Client {
   collection = {
     application_commands: new Collection(),
@@ -59,6 +60,7 @@ class DiscordBot extends Client {
         GatewayIntentBits.DirectMessageReactions,
         GatewayIntentBits.DirectMessageTyping,
         GatewayIntentBits.GuildScheduledEvents,
+        GatewayIntentBits.MessageContent,
       ],
       partials: [
         Partials.User,
@@ -74,7 +76,7 @@ class DiscordBot extends Client {
           {
             name: "keep this empty",
             type: 4,
-            state: "DiscordJS-V14-Bot-Template v3",
+            state: "",
           },
         ],
       },
@@ -92,36 +94,85 @@ class DiscordBot extends Client {
       config.channels.ticketChannel
     );
 
-    if (channelTicket && channelTicket.isTextBased()) {
-      const fetchedMessages = await channelTicket.messages.fetch({
-        limit: 100,
-      });
+    const faqChannel = await this.channels.fetch(config.channels.faqChannel);
+    const now = Date.now();
 
-      fetchedMessages.forEach(async (message) => {
-        try {
-          await message.delete();
-        } catch (error) {
-          console.error(`Failed to delete message: ${error}`);
-        }
-      });
+    let shouldSendFaq = true;
+    if (faqChannel && faqChannel.isTextBased()) {
+      const fetchedMessages = await faqChannel.messages.fetch({ limit: 1 });
+      const lastMsg = fetchedMessages.first();
+      if (lastMsg && now - lastMsg.createdTimestamp < 7 * 24 * 60 * 60 * 1000) {
+        shouldSendFaq = false;
+        // Nie wysyłaj ponownie FAQ jeśli jest świeże
+      } else {
+        // Usuń stare wiadomości jeśli są
+        const allMessages = await faqChannel.messages.fetch({ limit: 100 });
+        allMessages.forEach(async (message) => {
+          try {
+            await message.delete();
+          } catch (error) {
+            console.error(`Failed to delete message: ${error}`);
+          }
+        });
+        // Wyślij embed FAQ jeśli masz taki komponent
+      }
+    }
+
+    // ...existing code...
+
+    // Sprawdź, czy ostatnia wiadomość jest starsza niż 7 dni
+    let shouldSendTicket = true;
+    let shouldSendRecruiter = true;
+
+    if (channelTicket && channelTicket.isTextBased()) {
+      const fetchedMessages = await channelTicket.messages.fetch({ limit: 1 });
+      const lastMsg = fetchedMessages.first();
+      if (lastMsg && now - lastMsg.createdTimestamp < 7 * 24 * 60 * 60 * 1000) {
+        shouldSendTicket = false;
+      } else {
+        // Usuń stare wiadomości jeśli są
+        const allMessages = await channelTicket.messages.fetch({ limit: 100 });
+        allMessages.forEach(async (message) => {
+          try {
+            await message.delete();
+          } catch (error) {
+            console.error(`Failed to delete message: ${error}`);
+          }
+        });
+      }
     }
 
     if (recruiterChannel && recruiterChannel.isTextBased()) {
       const fetchedMessages = await recruiterChannel.messages.fetch({
-        limit: 100,
+        limit: 1,
       });
-
-      fetchedMessages.forEach(async (message) => {
-        try {
-          await message.delete();
-        } catch (error) {
-          console.error(`Failed to delete message: ${error}`);
-        }
-      });
+      const lastMsg = fetchedMessages.first();
+      if (lastMsg && now - lastMsg.createdTimestamp < 7 * 24 * 60 * 60 * 1000) {
+        shouldSendRecruiter = false;
+      } else {
+        // Usuń stare wiadomości jeśli są
+        const allMessages = await recruiterChannel.messages.fetch({
+          limit: 100,
+        });
+        allMessages.forEach(async (message) => {
+          try {
+            await message.delete();
+          } catch (error) {
+            console.error(`Failed to delete message: ${error}`);
+          }
+        });
+      }
     }
 
-    TicketEmbed.TicketEmbed(channelTicket, this);
-    RecrtierEmebed.RecrtierEmebed(recruiterChannel, this);
+    if (shouldSendTicket) {
+      TicketEmbed.TicketEmbed(channelTicket, this);
+    }
+    if (shouldSendRecruiter) {
+      RecrtierEmebed.RecrtierEmebed(recruiterChannel, this);
+    }
+    if (shouldSendFaq) {
+      sendFaqEmbed(faqChannel, this);
+    }
   };
 
   startStatusRotation = () => {
@@ -129,7 +180,7 @@ class DiscordBot extends Client {
     setInterval(() => {
       this.user.setPresence({ activities: [this.statusMessages[index]] });
       index = (index + 1) % this.statusMessages.length;
-    }, 4000);
+    }, 30000);
   };
 
   connect = async () => {
@@ -146,6 +197,20 @@ class DiscordBot extends Client {
       this.events_handler.load();
       this.startStatusRotation();
       this.sendEmbeds();
+
+        mongoose
+        .connect(process.env.MONGO_URI, {
+          serverSelectionTimeoutMS: 30000, // Czas oczekiwania na odpowiedź serwera (30 sek)
+          connectTimeoutMS: 60000, // Maksymalny czas próby połączenia (60 sek)
+          socketTimeoutMS: 45000, // Timeout gniazda (45 sek)
+        })
+        .then(() => {
+          console.log("✅ Połączono z MongoDB");
+        })
+        .catch((err) => {
+          console.error("❌ Błąd połączenia z MongoDB:", err);
+        });
+
       setInterval(this.sendEmbeds, 7 * 24 * 60 * 60 * 1000);
 
       warn(

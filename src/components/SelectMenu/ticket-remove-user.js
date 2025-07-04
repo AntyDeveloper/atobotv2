@@ -1,5 +1,6 @@
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
+const config = require("../../config");
 
 module.exports = new Component({
   customId: "select-user-to-remove",
@@ -12,8 +13,7 @@ module.exports = new Component({
   run: async (client, interaction) => {
     if (!interaction.member.roles.cache.has(config.tickets.roles.support)) {
       return interaction.reply({
-        content:
-          "Nie masz uprawnień do zamykania zgłoszeń.\n Tylko adminitrator może zamknać zgłoszenie.",
+        content: "Nie masz uprawnien.",
         ephemeral: true,
       });
     }

@@ -1,6 +1,7 @@
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const { PermissionsBitField } = require("discord.js");
+const config = require("../../config");
 
 module.exports = new Component({
   customId: "selected-user-to-add",
@@ -13,8 +14,7 @@ module.exports = new Component({
   run: async (client, interaction) => {
     if (!interaction.member.roles.cache.has(config.tickets.roles.support)) {
       return interaction.reply({
-        content:
-          "Nie masz uprawnień do zamykania zgłoszeń.\n Tylko adminitrator może zamknać zgłoszenie.",
+        content: "Nie masz uprawnien.",
         ephemeral: true,
       });
     }
